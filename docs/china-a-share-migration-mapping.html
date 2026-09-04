@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TradingAgents 中国 A 股迁移映射</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f5f7fb; }
+    body { margin: 0; line-height: 1.6; }
+    main { max-width: 1080px; margin: 0 auto; padding: 42px 24px 64px; }
+    h1, h2 { color: #102a5c; line-height: 1.25; }
+    h1 { margin-bottom: 8px; }
+    h2 { margin-top: 40px; }
+    .lead { color: #526078; margin-top: 0; }
+    .card { background: #fff; border: 1px solid #dbe3f1; border-radius: 12px; padding: 18px 20px; margin: 16px 0; box-shadow: 0 2px 8px rgba(18, 42, 92, .05); }
+    .ok { border-left: 4px solid #20815e; }
+    .hold { border-left: 4px solid #b47712; }
+    .out { border-left: 4px solid #697586; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { border: 1px solid #dbe3f1; padding: 10px; vertical-align: top; text-align: left; }
+    th { background: #edf3ff; color: #102a5c; }
+    code { background: #eef2f8; padding: 1px 4px; border-radius: 4px; }
+    a { color: #1457b8; }
+    .flow { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; background: #102a5c; color: #f8fbff; border-radius: 10px; padding: 16px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>TradingAgents 中国 A 股迁移映射</h1>
+    <p class="lead">范围：保持原有 Analyst、研究辩论、交易与风控链路；只替换已经存在工具槽位的数据来源。本文不记录凭据、内部正文或数据库连接信息。</p>
+
+    <section class="card ok">
+      <strong>已确认的原则</strong>
+      <ul>
+        <li>不新增 <code>china_a_stock</code> 分析模式，不改变市场、新闻或基本面的推理框架。</li>
+        <li>不把指数、行业指数、资金流、ETF 持仓等额外数据硬塞入原 Prompt；它们不是当前工具的替代品。</li>
+        <li>Market、Sentiment、News 和 Fundamentals Analyst 均可通过 CLI / <code>selected_analysts</code> 按需选择；未选择的节点不会创建。</li>
+        <li>宏观 FRED 替换、全市场新闻、预测市场和 ETF 专项解释必须人工审核后再做。</li>
+      </ul>
+    </section>
+
+    <h2>原始分析链路</h2>
+    <div class="flow">可选 Analyst（示意顺序）：Market → Sentiment → News → Fundamentals
+                                      ↓
+               已生成的 Analyst 报告 → Bull / Bear → Research Manager
+                                      ↓
+                         Trader → Risk debate → Portfolio Manager</div>
+    <p>运行时仅创建被选中的 Analyst，并按选择顺序串行执行；各自独立产出报告，最后由 Bull / Bear 统一使用。当前 A 股适配没有可用且已验证的 Sentiment 数据源，建议不选择 <code>social</code>。参见 <a href="../tradingagents/graph/setup.py">GraphSetup</a>、<a href="../tradingagents/graph/trading_graph.py">TradingAgentsGraph</a> 与 <a href="../cli/utils.py">CLI 选择</a>。</p>
+
+    <h2>逐槽位迁移映射</h2>
+    <table>
+      <thead><tr><th>现有槽位</th><th>原始语义</th><th>中国来源</th><th>状态与边界</th></tr></thead>
+      <tbody>
+        <tr><td><code>get_stock_data</code></td><td>OHLCV</td><td>A 股 <code>daily_quotes</code></td><td>已在 main：保持 CSV 的 <code>Date/Open/High/Low/Close/Volume</code> 契约。</td></tr>
+        <tr><td><code>get_indicators</code> / 验证快照</td><td>技术指标与精确数值核验</td><td>同一份 A 股 OHLCV，本地 stockstats 计算</td><td>已在 main：不引入预计算因子来改变指标逻辑。</td></tr>
+        <tr><td>身份上下文</td><td>公司名、行业、交易所，注入全部 Prompt</td><td><code>stock_basic/company_info</code></td><td>已在 main：A 股从阿里云 PostgreSQL 解析身份且不回退 Yahoo；来源不可用时保留仅包含 ticker 的上下文，不阻断分析。</td></tr>
+        <tr><td><code>get_fundamentals</code> 及财报工具</td><td>画像、估值、公告期财务数据</td><td>A 股基本面、估值、财报表</td><td>已在 main：以 <code>ann_date &lt;= analysis_date</code> 防止前视。</td></tr>
+        <tr><td><code>get_news(ticker,start,end)</code></td><td>按标的、按时间窗口的新闻事实</td><td>事件库 <code>raw_events</code>；<code>event_companies</code> 仅作关联索引</td><td>已在 main：保持 Markdown 新闻工具契约，来源白名单包含 <code>mysql-talks</code>；不使用 parsed/preprocessed/fusion 内容。</td></tr>
+        <tr><td><code>get_global_news</code></td><td>按时间窗口的全局新闻事实</td><td>事件库 <code>raw_events</code> 来源白名单</td><td>已在 main：按自然日读取原始事件，不做 ticker 或关键词检索，不使用派生事件内容。</td></tr>
+        <tr><td><code>get_macro_indicators</code></td><td>宏观数值证据</td><td>中国宏观指标和发布日历</td><td>人工审核：需先确定指标别名、发布日期口径及 Prompt 文案。</td></tr>
+        <tr><td>Sentiment Analyst</td><td>新闻 + StockTwits + Reddit 的交叉情绪分析</td><td>无等价完整来源</td><td>运行时取消选择 <code>social</code>；不迁移，不用资金流替代。</td></tr>
+      </tbody>
+    </table>
+
+    <h2>明确不纳入当前适配</h2>
+    <div class="card out">
+      <ul>
+        <li>指数、申万行业指数、个股资金流：原分析链路没有对应工具或 Prompt 槽位，不能当作“缺失替代品”。</li>
+        <li><code>get_prediction_markets</code>：当前是 Polymarket 的全球事件隐含概率，不存在应被新闻或事件数据冒充的中国替代。</li>
+        <li><code>get_insider_transactions</code>：尚未确认语义等价的 A 股来源。</li>
+        <li>ETF NAV、持仓、份额、资金流：它们不等于公司财务基本面；留待 ETF 专项分析。</li>
+      </ul>
+    </div>
+
+    <h2>首批已合并迁移分支</h2>
+    <table>
+      <thead><tr><th>分支</th><th>状态</th><th>目标</th><th>验证</th></tr></thead>
+      <tbody>
+        <tr><td><code>codex/china-a-share-migration-mapping</code></td><td>已合并至 main</td><td>本文件</td><td>HTML 路径未被 gitignore，链接与内容复核。</td></tr>
+        <tr><td><code>codex/china-a-share-identity</code></td><td>已合并至 main</td><td>以现有 A 股资料替换 Prompt 身份上下文的 yfinance 依赖</td><td>单元测试：成功、缺失和仅包含 ticker 的回退。</td></tr>
+        <tr><td><code>codex/china-a-share-raw-news</code></td><td>已合并至 main</td><td>以 raw_events 提供个股 <code>get_news</code></td><td>单元测试：代码规范化、日期/as-of 截止、只返回原始事实层、空结果。</td></tr>
+      </tbody>
+    </table>
+
+    <section class="card hold">
+      <strong>人工审核关口</strong>
+      <p>宏观替换必须先审核发布日历和提示词；全市场新闻、预测市场、社交情绪、ETF 专项分析也不得随上述分支顺带接入。</p>
+    </section>
+  </main>
+</body>
+</html>
