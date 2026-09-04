@@ -115,7 +115,7 @@ Actions 只登记 detached server deployment，launcher 约两秒后返回；wor
 ## 2026-09-02 Strict QA 重新打开
 
 PR #18 head `a082dd390492dd2a9499973467f5bb642f7acbcd` 的 Strict QA 在
-[`issuecomment-5506687572`](https://github.com/BeixiHub/trading-agents-adapted/pull/18#issuecomment-5506687572)
+[`issuecomment-5506687572`](https://github.com/rra7963/A-stock-rachtrader/pull/18#issuecomment-5506687572)
 指出：正式方案前半部已经同步为“launcher 快速返回、workflow 有界等待精确终态”，但第 10.4、14–16、
 18 节仍保留“Actions 提前结束”“只登记任务并立即返回”“不让 Actions 等待”等旧结论。因此上面的
 “正式设计已经同步、未发现新偏移”结论并不完整，状态从 `已解决` 恢复为 `已决策待落地`。
@@ -149,7 +149,7 @@ PR #18 head `a082dd390492dd2a9499973467f5bb642f7acbcd` 的 Strict QA 在
 ## 2026-09-02 Strict QA rollback 失败归因重新打开
 
 PR #18 head `888062d9586695575895b49b2cd26bdd55fec6cb` 的 Strict QA 在
-[`issuecomment-5508746427`](https://github.com/BeixiHub/trading-agents-adapted/pull/18#issuecomment-5508746427)
+[`issuecomment-5508746427`](https://github.com/rra7963/A-stock-rachtrader/pull/18#issuecomment-5508746427)
 指出：原设计和上面的落地结论要求最终失败回执记录安全、闭合的失败阶段，且
 `rollback_failed` 必须为人工恢复提供准确证据；实际 `rollback()` 虽能从
 `run_service_smokes()` 得到 `FAILED_SMOKE_STAGE`，但 pull、compose-up、health 或 smoke 任一步恢复失败后，

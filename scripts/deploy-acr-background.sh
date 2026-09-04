@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-DEPLOY_DIR="${DEPLOY_DIR:-/opt/trading-agents-adapted}"
+DEPLOY_DIR="${DEPLOY_DIR:-/opt/a-stock-rachtrader}"
 RELEASE_DIR="${RELEASE_DIR:?RELEASE_DIR is required}"
 GIT_SHA="${GIT_SHA:?GIT_SHA is required}"
 IMAGE_URI="${IMAGE_URI:?IMAGE_URI is required}"
@@ -22,7 +22,7 @@ LATEST_RESULT_FILE="$DEPLOY_DIR/.deploy-last-result.acr"
 LOCK_FILE="$RUN_DIR/deploy-global.lock"
 STATE_FILE="$DEPLOY_DIR/.deploy-current"
 CURRENT_SHA_FILE="$DEPLOY_DIR/.deploy-current-sha"
-PROJECT_NAME="trading-agents-adapted"
+PROJECT_NAME="a-stock-rachtrader"
 DEPLOY_LOCK_TIMEOUT_SECONDS="${DEPLOY_LOCK_TIMEOUT_SECONDS:-1800}"
 PULL_MAX_ATTEMPTS="${PULL_MAX_ATTEMPTS:-5}"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-150}"
@@ -231,7 +231,7 @@ container_is_verified() {
       || return 1
     observed_image="$(docker inspect --format '{{.Config.Image}}' "$container_id" 2>/dev/null)" \
       || return 1
-    observed_sha="$(docker inspect --format '{{index .Config.Labels "io.beixi.deploy.sha"}}' "$container_id" 2>/dev/null)" \
+    observed_sha="$(docker inspect --format '{{index .Config.Labels "io.rachel.deploy.sha"}}' "$container_id" 2>/dev/null)" \
       || return 1
     [ "$running" = "true" ] \
       && [ "$health" = "healthy" ] \

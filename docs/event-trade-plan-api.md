@@ -3,9 +3,9 @@
 ## Status and ownership
 
 - **Status:** approved for implementation on 2026-08-13
-- **Protocol owner:** `BeixiHub/trading-agents-adapted`
-- **Execution and portfolio owner:** `BeixiHub/TestingStrategies`
-- **First consumer:** TestingStrategies service `supporting_lobster` (display name: 配角小龙虾)
+- **Protocol owner:** `rra7963/A-stock-rachtrader`
+- **Execution and portfolio owner:** `downstream execution system`
+- **First consumer:** Rachel downstream execution service service `rachel_executor` (display name: Rachel Executor)
 
 This document freezes the first machine-to-machine TradingAgents interface. It extends the
 server from one persistent CLI toolbox to two independently healthy services built from the
@@ -25,7 +25,7 @@ The API owns:
 4. reducing the graph conclusion to a strict, bounded buy plan or a decline;
 5. persistent request-id idempotency and response provenance.
 
-TestingStrategies owns:
+Rachel downstream execution service owns:
 
 1. event provenance, the S/high-relevance filter, event freshness, trading-session calendar and
    the plan expiry window;
@@ -35,7 +35,7 @@ TestingStrategies owns:
 5. deterministic full-position exits at -9% and +20% from confirmed entry cost.
 
 The API output is never a broker payload. A syntactically valid response may still be rejected by
-TestingStrategies when execution-time state has changed.
+Rachel downstream execution service when execution-time state has changed.
 
 ## Transport and deployment boundary
 
@@ -44,14 +44,14 @@ TestingStrategies when execution-time state has changed.
 - Authentication: `Authorization: Bearer <token>`; the token is read only from
   `TRADINGAGENTS_API_BEARER_TOKEN` and compared in constant time.
 - The API container is attached to an externally managed Docker bridge network named by
-  `TRADINGAGENTS_SHARED_NETWORK` (default `beixi-trading-internal`). It has the stable network
+  `TRADINGAGENTS_SHARED_NETWORK` (default `rachel-trading-internal`). It has the stable network
   alias `trading-agents-event-plan-api` and exposes port 8787 only to that Docker network.
 - No host port is published. The existing CLI service remains present and does not receive the API
   token.
-- Common LLM/data configuration remains in `/opt/trading-agents-adapted/.env`. The API bearer token
-  is stored separately in `/opt/trading-agents-adapted/.event-plan-api.env`, mode 0600, and is never
+- Common LLM/data configuration remains in `/opt/a-stock-rachtrader/.env`. The API bearer token
+  is stored separately in `/opt/a-stock-rachtrader/.event-plan-api.env`, mode 0600, and is never
   part of an image or release bundle.
-- The caller deadline and server processing deadline are 900 seconds. TestingStrategies does not
+- The caller deadline and server processing deadline are 900 seconds. Rachel downstream execution service does not
   automatically retry a timeout, transport error, 429, 5xx response, or previously failed request.
 
 The external network and both repositories' matching token files are deployment preconditions.
@@ -65,7 +65,7 @@ and validation do not depend on binary floating-point behavior.
 ```json
 {
   "schema_version": "1.0",
-  "request_id": "supporting_lobster:event-123:2026-08-13",
+  "request_id": "rachel_executor:event-123:2026-08-13",
   "requested_at": "2026-08-13T10:02:00+08:00",
   "event": {
     "event_id": "event-123",
@@ -106,13 +106,13 @@ Version 1 invariants:
   `688`/`689`, funds/ETFs, and unknown prefixes are rejected.
 - There are 1–20 unique candidates. None may already be held or pending.
 - The event must have been first received no more than 15 minutes after publication. The API also
-  rejects a request timestamp materially different from server time; TestingStrategies performs
+  rejects a request timestamp materially different from server time; Rachel downstream execution service performs
   the authoritative session/expiry check.
 - `max_position_count` is at most 10 and `per_stock_cap_cny` is at most CNY 100,000. Pending buys
   reserve slots. No account id, broker token, database credential, or person identity is accepted.
 
 The 20-candidate wire cap is a transport and prompt-size safeguard, not permission to buy more than
-one stock. TestingStrategies may apply a lower candidate cap.
+one stock. Rachel downstream execution service may apply a lower candidate cap.
 
 ## Version 1 response
 
@@ -121,7 +121,7 @@ The success response is returned for both buy and decline decisions:
 ```json
 {
   "schema_version": "1.0",
-  "request_id": "supporting_lobster:event-123:2026-08-13",
+  "request_id": "rachel_executor:event-123:2026-08-13",
   "request_sha256": "<64 lowercase hex characters>",
   "decision_id": "<64 lowercase hex characters>",
   "decided_at": "2026-08-13T10:08:00+08:00",
@@ -157,7 +157,7 @@ The API validates that a buy plan:
 - can fund at least one 100-share board lot at that maximum price;
 - appears only when the graph's exact final rating is `Buy`.
 
-TestingStrategies independently rechecks all of these conditions against current broker and market
+Rachel downstream execution service independently rechecks all of these conditions against current broker and market
 state. It may submit a smaller board-lot quantity but may never raise the API's amount or price.
 
 ## Decision pipeline and prompt-injection boundary
@@ -200,7 +200,7 @@ submits an order, or defines sell rules.
 The current deployed release contains one service while the new release contains two. Deployment
 preflight and background verification therefore derive the expected service list from each
 release's own Compose model. For every expected service, they require exactly one running, healthy
-container with the requested immutable image URI and `io.beixi.deploy.sha`. Unexpected project
+container with the requested immutable image URI and `io.rachel.deploy.sha`. Unexpected project
 services fail verification.
 
 New-release smoke checks cover CLI import/help plus API import and local readiness. Rollback uses the

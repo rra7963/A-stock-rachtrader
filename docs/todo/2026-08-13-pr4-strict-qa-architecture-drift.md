@@ -5,7 +5,7 @@
 - **决策日期**：2026-08-13
 - **决策人**：用户
 - **负责人**：当前 Codex 会话负责按既有设计修复与离线验证；仓库 maintainer 负责 review/merge/deploy
-- **相关 PR**：[#4](https://github.com/BeixiHub/trading-agents-adapted/pull/4)
+- **相关 PR**：[#4](https://github.com/rra7963/A-stock-rachtrader/pull/4)
 - **相关提交**：发现记录 `9849d9043f54f71250aa4c40be0c1fc177e2c8a1`；修复
   `59e00eba3c8dbf13d2a240464d3ae8de9c0f72e5`
 
@@ -33,7 +33,7 @@ timeout exception 形态，但没有同时实现标签内容编码、wire string
 ## 影响与风险
 
 - 恶意或被污染的事件文本可逃逸“未信任证据”标签并以标签外文本影响候选选择、graph 结论和机器计划，破坏本 PR 最关键的提示注入安全边界。
-- JSON number 会扩大已经冻结的外部协议，令不同客户端的浮点序列化参与幂等哈希，并与文档及后续 TestingStrategies 实现产生契约漂移。
+- JSON number 会扩大已经冻结的外部协议，令不同客户端的浮点序列化参与幂等哈希，并与文档及后续 Rachel downstream execution service 实现产生契约漂移。
 - 修复前 Python 3.10 用户无法导入新 API，required CI Gate 阻止合并；当时架构 TODO 中“全量验证
   通过、偏移已解决”的结论不成立。
 
@@ -57,7 +57,7 @@ timeout exception 形态，但没有同时实现标签内容编码、wire string
 ## 阻塞范围
 
 在修复、对抗测试和 Python 3.10–3.13/full CI 验证完成前，继续阻塞 PR #4 合并、后续
-TestingStrategies 对接及任何部署/activation。与本 PR 无关的开发不受影响。验证完成后把本记录
+Rachel downstream execution service 对接及任何部署/activation。与本 PR 无关的开发不受影响。验证完成后把本记录
 更新为“已解决”，保留原发现、用户决定、落地提交和验证证据。
 
 ## 落地进度
@@ -79,5 +79,5 @@ TestingStrategies 对接及任何部署/activation。与本 PR 无关的开发�
 ## 解决结论
 
 实现、wire schema、提示边界、最低 Python 版本与原设计重新一致；本记录更新为“已解决”并继续保留
-为审计历史。PR #4 仍为 OPEN，未 merge、未部署；外部 network、secret 与 TestingStrategies
+为审计历史。PR #4 仍为 OPEN，未 merge、未部署；外部 network、secret 与 Rachel downstream execution service
 activation 仍由各自后续 PR/运维流程拥有。

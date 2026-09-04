@@ -1,21 +1,22 @@
-# TradingAgents — BeixiHub 适配版
+# TradingAgents — Rachel A 股增强版
 
 > [!IMPORTANT]
-> 本私有仓库是 [TauricResearch/TradingAgents](https://github.com/TauricResearch/TradingAgents)
-> 的 BeixiHub 适配版本，不是官方上游仓库。原始项目仍是框架更新、作者归属、论文引用和
-> Apache 2.0 许可的来源。
+> 本仓库由 **Rachel** 维护，是基于
+> [TauricResearch/TradingAgents](https://github.com/TauricResearch/TradingAgents)
+> 打造的 A 股增强版本，不是官方上游仓库。Rachel 负责本仓库的功能规划、适配与维护；
+> 原始项目仍是框架更新、作者归属、论文引用和 Apache 2.0 许可的来源。
 
 ## 仓库关系
 
-- **公司仓库（`origin`）：** [BeixiHub/trading-agents-adapted](https://github.com/BeixiHub/trading-agents-adapted)
+- **Rachel 维护仓库（`origin`）：** [rra7963/A-stock-rachtrader](https://github.com/rra7963/A-stock-rachtrader)
 - **原始开源仓库（`upstream`）：** [TauricResearch/TradingAgents](https://github.com/TauricResearch/TradingAgents)
 
 ### 维护方式
 
-- `origin/main` 是公司适配版本的维护基线；公司需求、修复和适配变更均在本仓库开发、评审和合并。
-- `upstream` 仅作为原始开源代码的同步来源。上游更新按需人工同步：从最新的 `origin/main` 创建独立同步分支，合并 `upstream/main`，完成冲突处理和验证后，再通过 PR 合入公司仓库；不要在无关功能分支中顺带同步。
-- 上游变更不会直接覆盖公司适配。涉及数据源路由、A 股标识与数据口径、新闻、宏观数据或提示词等内容时，应先评估与现有适配的冲突，再决定保留、调整或采用上游实现。
-- 同步 PR 应记录对应的上游提交、主要冲突及验证结果。除运行仓库 CI 外，还应针对受影响的公司数据链路进行验证；未经验证的能力不得表述为已经支持。
+- `origin/main` 是 Rachel 版本的维护基线；Rachel 的功能规划、修复和适配变更均在本仓库开发、评审和合并。
+- `upstream` 仅作为原始开源代码的同步来源。上游更新按需人工同步：从最新的 `origin/main` 创建独立同步分支，合并 `upstream/main`，完成冲突处理和验证后，再通过 PR 合入 Rachel 维护仓库；不要在无关功能分支中顺带同步。
+- 上游变更不会直接覆盖 Rachel 的 A 股适配。涉及数据源路由、A 股标识与数据口径、新闻、宏观数据或提示词等内容时，应先评估与现有实现的冲突，再决定保留、调整或采用上游实现。
+- 同步 PR 应记录对应的上游提交、主要冲突及验证结果。除运行仓库 CI 外，还应针对受影响的 Rachel 数据链路进行验证；未经验证的能力不得表述为已经支持。
 
 ## 已完成的迁移与适配
 
@@ -30,11 +31,11 @@
 在策略代码中调用 ETF Platform Dynamic Agent API 的复制示例、错误处理和服务器自动配置见
 [Dynamic Agent API 开发文档](docs/dynamic-agent-api.md)。
 
-## 公司版本快速开始
+## Rachel 版本快速开始
 
 ```bash
-git clone https://github.com/BeixiHub/trading-agents-adapted.git
-cd trading-agents-adapted
+git clone https://github.com/rra7963/A-stock-rachtrader.git
+cd A-stock-rachtrader
 cp .env.example .env
 ```
 
@@ -67,7 +68,7 @@ uv run ruff check .
 
 ## 原始项目文档
 
-以下内容保持原始仓库的说明、社区链接、研究免责声明、论文引用和作者归属，不混入公司适配说明。
+以下内容保持原始仓库的说明、社区链接、研究免责声明、论文引用和作者归属，不混入 Rachel 适配说明。
 <!-- 原始 README 起点 -->
 <p align="center">
   <img src="assets/TauricResearch.png" style="width: 60%; height: auto;">
@@ -213,7 +214,7 @@ Operators can start
 an interactive analysis inside the verified CLI container with:
 
 ```bash
-deploy_dir=/opt/trading-agents-adapted
+deploy_dir=/opt/a-stock-rachtrader
 sha="$(cat "$deploy_dir/.deploy-current-sha")"
 image_uri="$(sed -n 's/^image_uri=//p' "$deploy_dir/.deploy-current")"
 TRADINGAGENTS_IMAGE="$image_uri" \
@@ -221,7 +222,7 @@ TRADINGAGENTS_ENV_FILE="$deploy_dir/.env" \
 TRADINGAGENTS_API_ENV_FILE="$deploy_dir/.event-plan-api.env" \
 AGENT_RUNTIME_ENV_FILE="/opt/etf-agent-runtime-tunnel/secrets/internal-agent-caller.env" \
 GIT_SHA="$sha" \
-  docker compose -p trading-agents-adapted \
+  docker compose -p a-stock-rachtrader \
     --project-directory "$deploy_dir" \
     -f "$deploy_dir/releases/$sha/docker-compose.server.yml" \
     exec tradingagents tradingagents

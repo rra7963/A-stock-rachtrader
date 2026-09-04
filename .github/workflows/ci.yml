@@ -102,7 +102,7 @@ jobs:
           printf 'TRADINGAGENTS_API_BEARER_TOKEN=%064d\n' 0 > .event-plan-api.env
           printf 'AGENT_RUNTIME_BASE_URL=http://agent-runtime.test:18001\nINTERNAL_AGENT_TOKEN=test-token\n' > "$RUNNER_TEMP/agent-runtime.env"
           docker compose -f docker-compose.yml config --quiet
-          TRADINGAGENTS_IMAGE=example.invalid/trading-agents-adapted:test \
+          TRADINGAGENTS_IMAGE=example.invalid/a-stock-rachtrader:test \
           TRADINGAGENTS_ENV_FILE="$PWD/.env" \
           TRADINGAGENTS_API_ENV_FILE="$PWD/.event-plan-api.env" \
           AGENT_RUNTIME_ENV_FILE="$RUNNER_TEMP/agent-runtime.env" \
@@ -110,13 +110,13 @@ jobs:
             docker compose -f docker-compose.server.yml config --quiet
       - name: Build the production image
         run: |
-          docker build --tag trading-agents-adapted:ci .
-          test "$(docker image inspect --format '{{.Config.User}}' trading-agents-adapted:ci)" = "appuser"
-          docker run --rm --entrypoint python trading-agents-adapted:ci \
+          docker build --tag a-stock-rachtrader:ci .
+          test "$(docker image inspect --format '{{.Config.User}}' a-stock-rachtrader:ci)" = "appuser"
+          docker run --rm --entrypoint python a-stock-rachtrader:ci \
             -c "import tradingagents; import tradingagents.api.app; import tradingagents.integrations; import cli.main"
-          docker run --rm trading-agents-adapted:ci --help >/dev/null
+          docker run --rm a-stock-rachtrader:ci --help >/dev/null
           docker run --rm --entrypoint tradingagents-dynamic-agent-example \
-            trading-agents-adapted:ci --help >/dev/null
+            a-stock-rachtrader:ci --help >/dev/null
 
   ci-gate:
     name: CI Gate

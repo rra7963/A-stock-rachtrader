@@ -5,11 +5,11 @@
 - **Status:** schema 1.0 approved and verified on 2026-08-17; backward-compatible schema 1.1
   extension for A events and STAR Market instruments merged through PR #16; bounded independent-graph
   concurrency approved on 2026-09-01 and implemented in the current PR
-- **Protocol owner:** `BeixiHub/trading-agents-adapted`
-- **Execution and broker owner:** `BeixiHub/TestingStrategies`
+- **Protocol owner:** `rra7963/A-stock-rachtrader`
+- **Execution and broker owner:** `downstream execution system`
 - **Dependency:** the portfolio-allocation stack is present on `main` through recovery PR #15;
   PR #13 now contains only this resource and its audit commits on top of that main
-- **Consumer:** TestingStrategies service `supporting_lobster` (配角小龙虾)
+- **Consumer:** Rachel downstream execution service service `rachel_executor` (Rachel Executor)
 
 This contract adds a batch portfolio resource without changing `POST /v1/event-trade-plans`.
 TradingAgents researches every supplied instrument and chooses one long-only target portfolio.
@@ -41,7 +41,7 @@ contract; `schema_version="1.1"` is an explicit opt-in for the new event/market 
 - one half-open `event_window` with `starts_at < ends_at`, `coverage_status` equal to `complete`
   or `partial`, and a non-negative `coverage_gap_count` consistent with that status;
 - zero to 100 events. Version 1.0 accepts only exact `S`; version 1.1 accepts exact `S|A`. Event
-  text is bounded, untrusted evidence. TestingStrategies deterministically orders S before A when
+  text is bounded, untrusted evidence. Rachel downstream execution service deterministically orders S before A when
   its event limit applies;
 - one to 20 unique instruments. Version 1.0 accepts the original ordinary Shanghai/Shenzhen
   A-share prefixes; version 1.1 additionally accepts `688xxx/689xxx`. Every non-held instrument has
@@ -53,7 +53,7 @@ contract; `schema_version="1.1"` is an explicit opt-in for the new event/market 
 
 The caller always places all existing holdings first. Remaining universe slots are deterministic
 high-relevance enabled-event candidates, with S candidates taking precedence over A at the limit.
-If more than 20 instruments exist, TestingStrategies discloses
+If more than 20 instruments exist, Rachel downstream execution service discloses
 the truncated-candidate count; TradingAgents cannot select outside the supplied universe.
 
 Per the user's 2026-08-17 decision, this resource has no 10-position, CNY 100,000, or fixed 25%
@@ -124,7 +124,7 @@ generic `planner_failed` contract.
 
 ## Execution boundary
 
-TestingStrategies independently binds the response (including schema version) to the exact request,
+Rachel downstream execution service independently binds the response (including schema version) to the exact request,
 persists it, obtains new broker/quote snapshots, converts target weights to exchange-valid deltas,
 and performs sell-confirm-before-
 buy execution. It may lower or skip quantities for cash, price-limit, T+1, stale quote, unresolved

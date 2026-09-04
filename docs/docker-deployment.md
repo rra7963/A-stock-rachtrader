@@ -14,14 +14,14 @@ release 文件并登记服务器后台任务；launcher 约 2 秒后返回，wor
 
 Repository Variables：
 
-- `ACR_REGISTRY=beixiai-prod-acr-registry.cn-hangzhou.cr.aliyuncs.com`
-- `ACR_NAMESPACE=testingstrategies`
+- `ACR_REGISTRY=your-acr-registry.example.com`
+- `ACR_NAMESPACE=rachel`
 
 Repository Secrets：
 
 - `ACR_USERNAME`、`ACR_PASSWORD`：GitHub runner 推送 ACR 镜像；
-- `DEPLOY_HOST=163.7.6.239`、`DEPLOY_USER=root`、`DEPLOY_PASSWORD`：SSH；
-- `DEPLOY_PATH=/opt/trading-agents-adapted`。
+- `DEPLOY_HOST=<deployment-host>`、`DEPLOY_USER=<deployment-user>`、`DEPLOY_PASSWORD`：SSH；
+- `DEPLOY_PATH=/opt/a-stock-rachtrader`。
 
 Secrets 不得写入 workflow、release bundle、日志或结果文件。部署 workflow 正常情况下只
 由 `main` 分支成功结束的 `CI` workflow 触发；`workflow_dispatch` 只能从 `main` 发起，
@@ -33,19 +33,19 @@ check。在该设置生效前，即使部署 workflow 会等待合并后的 main
 
 ## 服务器首次准备
 
-以下命令在 `root@163.7.6.239` 执行：
+以下命令在 `<deployment-user>@<deployment-host>` 执行：
 
 ```bash
 install -d -m 700 \
-  /opt/trading-agents-adapted/logs \
-  /opt/trading-agents-adapted/run/deploy-results/acr \
-  /opt/trading-agents-adapted/releases
+  /opt/a-stock-rachtrader/logs \
+  /opt/a-stock-rachtrader/run/deploy-results/acr \
+  /opt/a-stock-rachtrader/releases
 
-install -m 600 /dev/null /opt/trading-agents-adapted/.env
-install -m 600 /dev/null /opt/trading-agents-adapted/.event-plan-api.env
-install -m 600 /dev/null /opt/trading-agents-adapted/.deploy.env
-docker network inspect beixi-trading-internal >/dev/null 2>&1 \
-  || docker network create beixi-trading-internal
+install -m 600 /dev/null /opt/a-stock-rachtrader/.env
+install -m 600 /dev/null /opt/a-stock-rachtrader/.event-plan-api.env
+install -m 600 /dev/null /opt/a-stock-rachtrader/.deploy.env
+docker network inspect rachel-trading-internal >/dev/null 2>&1 \
+  || docker network create rachel-trading-internal
 test -s /opt/etf-agent-runtime-tunnel/secrets/internal-agent-caller.env
 ```
 
@@ -67,7 +67,7 @@ DEPLOY_FEISHU_WEBHOOK_URL=...
 ```
 
 `.event-plan-api.env` 只保存 API 专属配置：独立 bearer token，以及可选的组合分析并发上限。token
-必须使用独立高熵值，并在 TestingStrategies 的 `supporting_lobster` server-only env 中配置同一值；
+必须使用独立高熵值，并在 Rachel downstream execution service 的 `rachel_executor` server-only env 中配置同一值；
 不得复用 LLM、数据库、ACR 或 SSH 凭据。并发值只接受 `1..4`；旧服务器缺少该行时默认 4：
 
 ```dotenv
@@ -96,13 +96,13 @@ ETF Platform 接入流程维护的 root-only 文件：
 值。完成后再次执行：
 
 ```bash
-chmod 600 /opt/trading-agents-adapted/.env \
-  /opt/trading-agents-adapted/.event-plan-api.env \
-  /opt/trading-agents-adapted/.deploy.env
+chmod 600 /opt/a-stock-rachtrader/.env \
+  /opt/a-stock-rachtrader/.event-plan-api.env \
+  /opt/a-stock-rachtrader/.deploy.env
 ```
 
 首次部署允许没有 `.deploy-current` 和 `.deploy-current-sha`，但此时不得已有 Compose 项目
-`trading-agents-adapted` 的 `tradingagents` 容器。后续构建前预检会等待全局部署锁（最长
+`a-stock-rachtrader` 的 `tradingagents` 容器。后续构建前预检会等待全局部署锁（最长
 1800 秒），要求两个状态文件同时存在且一致，并核对 current release Compose 文件和容器的
 镜像 URI/SHA 标签。预检不要求容器当前 healthy，以便故障版本仍可通过新部署修复；但状态
 缺失、部分写入或与容器身份不一致时会在构建镜像之前失败。
@@ -115,10 +115,10 @@ GitHub Actions 先登记 detached deployment，再每 5 秒读取本次逐请求
 后台任务。服务器结果和阶段日志仍可独立查看：
 
 ```bash
-cat /opt/trading-agents-adapted/.deploy-last-result.acr
-tail -n 200 /opt/trading-agents-adapted/logs/deploy-acr.*.log
+cat /opt/a-stock-rachtrader/.deploy-last-result.acr
+tail -n 200 /opt/a-stock-rachtrader/logs/deploy-acr.*.log
 
-deploy_dir=/opt/trading-agents-adapted
+deploy_dir=/opt/a-stock-rachtrader
 sha="$(cat "$deploy_dir/.deploy-current-sha")"
 image_uri="$(sed -n 's/^image_uri=//p' "$deploy_dir/.deploy-current")"
 TRADINGAGENTS_IMAGE="$image_uri" \
@@ -126,14 +126,14 @@ TRADINGAGENTS_ENV_FILE="$deploy_dir/.env" \
 TRADINGAGENTS_API_ENV_FILE="$deploy_dir/.event-plan-api.env" \
 AGENT_RUNTIME_ENV_FILE="/opt/etf-agent-runtime-tunnel/secrets/internal-agent-caller.env" \
 GIT_SHA="$sha" \
-  docker compose -p trading-agents-adapted \
+  docker compose -p a-stock-rachtrader \
     --project-directory "$deploy_dir" \
     -f "$deploy_dir/releases/$sha/docker-compose.server.yml" \
     ps
 ```
 
 `success` 表示该 release Compose 声明的每个 service 都恰有一个 `healthy` 容器、每个
-`.Config.Image` 均为本次完整 SHA 镜像、容器标签 `io.beixi.deploy.sha` 匹配，且 CLI import/help
+`.Config.Image` 均为本次完整 SHA 镜像、容器标签 `io.rachel.deploy.sha` 匹配，且 CLI import/help
 与 API import/readiness smoke 均成功。`success_superseded` 表示上述验证完成后出现了更新请求；
 `superseded` 表示本请求未执行容器 mutation、由更新请求接管。后两者不会制造 workflow 假失败，
 但也不能单独证明该 SHA 仍是服务器最终版本，必须以更新请求的终态和 `.deploy-current` 为准。
@@ -141,7 +141,7 @@ GIT_SHA="$sha" \
 进入工具箱运行分析：
 
 ```bash
-deploy_dir=/opt/trading-agents-adapted
+deploy_dir=/opt/a-stock-rachtrader
 sha="$(cat "$deploy_dir/.deploy-current-sha")"
 image_uri="$(sed -n 's/^image_uri=//p' "$deploy_dir/.deploy-current")"
 TRADINGAGENTS_IMAGE="$image_uri" \
@@ -149,7 +149,7 @@ TRADINGAGENTS_ENV_FILE="$deploy_dir/.env" \
 TRADINGAGENTS_API_ENV_FILE="$deploy_dir/.event-plan-api.env" \
 AGENT_RUNTIME_ENV_FILE="/opt/etf-agent-runtime-tunnel/secrets/internal-agent-caller.env" \
 GIT_SHA="$sha" \
-  docker compose -p trading-agents-adapted \
+  docker compose -p a-stock-rachtrader \
     --project-directory "$deploy_dir" \
     -f "$deploy_dir/releases/$sha/docker-compose.server.yml" \
     exec tradingagents tradingagents
@@ -163,7 +163,7 @@ SHA。workflow 不重建或覆盖该镜像，只验证 manifest 并登记同一�
 
 ```bash
 gh workflow run deploy-acr.yml \
-  --repo BeixiHub/trading-agents-adapted \
+  --repo rra7963/A-stock-rachtrader \
   --ref main \
   -f existing_sha=<40位已成功SHA>
 ```
@@ -196,9 +196,9 @@ gh workflow run deploy-acr.yml \
 ```bash
 df -h /
 docker system df
-docker ps --filter name=trading-agents-adapted --no-trunc
-cat /opt/trading-agents-adapted/.deploy-current
-cat /opt/trading-agents-adapted/.deploy-last-result.acr
+docker ps --filter name=a-stock-rachtrader --no-trunc
+cat /opt/a-stock-rachtrader/.deploy-current
+cat /opt/a-stock-rachtrader/.deploy-last-result.acr
 ```
 
 禁止使用 `docker system prune -a`、`docker image prune -a`、`docker volume prune`，也禁止

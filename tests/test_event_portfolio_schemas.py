@@ -15,7 +15,7 @@ from tradingagents.api.portfolio_schemas import (
 def valid_portfolio_request_payload() -> dict:
     return {
         "schema_version": "1.0",
-        "request_id": "supporting_lobster:portfolio:2026-08-17",
+        "request_id": "rachel_executor:portfolio:2026-08-17",
         "requested_at": "2026-08-17T08:31:00+08:00",
         "decision_deadline": "2026-08-17T14:00:00+08:00",
         "event_window": {
@@ -270,7 +270,7 @@ def test_agent_allocation_requires_exact_100_percent() -> None:
 def test_response_rejects_duplicate_positions() -> None:
     response = {
         "schema_version": "1.0",
-        "request_id": "supporting_lobster:portfolio:2026-08-17",
+        "request_id": "rachel_executor:portfolio:2026-08-17",
         "request_sha256": "a" * 64,
         "decision_id": "b" * 64,
         "decided_at": "2026-08-17T09:00:00+08:00",
@@ -305,7 +305,7 @@ def test_response_rejects_duplicate_positions() -> None:
 def test_schema_1_1_response_accepts_star_market_membership() -> None:
     response = {
         "schema_version": "1.1",
-        "request_id": "supporting_lobster:portfolio:2026-08-17",
+        "request_id": "rachel_executor:portfolio:2026-08-17",
         "request_sha256": "a" * 64,
         "decision_id": "b" * 64,
         "decided_at": "2026-08-17T09:00:00+08:00",

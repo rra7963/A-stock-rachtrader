@@ -65,7 +65,7 @@
 2. **保留串行，只补安全阶段码和进度。** 架构与峰值成本最稳定，也能在下一次失败时获得更准确证据；
    但不解决 20 标的约四小时墙钟时延，不能据此宣称配角已恢复正常可用。
 3. **调用方降低标的上限或预先只挑一部分。** 会改变用户已选择的“高相关候选 + 上限”以及“TA 研究
-   每个已提交标的”的跨仓合同，需要另开 TestingStrategies 设计与 PR，不推荐。
+   每个已提交标的”的跨仓合同，需要另开 Rachel downstream execution service 设计与 PR，不推荐。
 4. **返回部分组合或给失败标的做评级 fallback。** 违反严格全成员与失败关闭设计，会让仓位决策建立在
    不完整研究上，不推荐。
 
@@ -100,7 +100,7 @@ PR 绿色只证明实现合同，不代表 live LLM、自然事件、模拟券�
 - 固定 worker/graph 使用共享队列完成精确请求 universe，任何成员失败后停止启动新 graph 调用，并等待
   所有已在途 worker 结束；只在全员完成后进入一次 allocator；
 - 进程级 API admission lock、持久化 request-id 幂等、绝对 deadline、无重试、无 partial/fallback、
-  wire schema 与 TestingStrategies 的账户/订单职责边界均未改变；
+  wire schema 与 Rachel downstream execution service 的账户/订单职责边界均未改变；
 - 跨 graph 共享的 Markdown memory log 读写使用进程内可重入锁串行化；正式 API 仍固定单个
   uvicorn worker。若未来改为多进程，必须先补跨进程文件同步并重新评审；
 - SQLite 终态只接受 allowlist 阶段码；HTTP 保持通用 `planner_failed`；新增进度记录不包含标的、事件

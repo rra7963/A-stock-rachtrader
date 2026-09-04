@@ -72,7 +72,7 @@ def _run_baseline(deploy_dir: Path, fake_bin: Path, **extra_env: str):
         "PATH": f"{fake_bin}:{os.environ['PATH']}",
         "DEPLOY_DIR": str(deploy_dir),
         "DEPLOY_LOCK_TIMEOUT_SECONDS": "2",
-        "COMPOSE_PROJECT_NAME": "trading-agents-adapted",
+        "COMPOSE_PROJECT_NAME": "a-stock-rachtrader",
     }
     env.update(extra_env)
     return subprocess.run(
@@ -89,7 +89,7 @@ def _prepare_background(tmp_path: Path, deploy_env: str | None = None):
     deploy_dir = tmp_path / "deploy"
     release_dir = deploy_dir / "releases" / SHA
     fake_bin = tmp_path / "bin"
-    image_uri = f"registry.example/team/trading-agents-adapted:{SHA}"
+    image_uri = f"registry.example/team/a-stock-rachtrader:{SHA}"
     _write(release_dir / "docker-compose.server.yml", "services: {}\n")
     _write(deploy_dir / ".env", "OPENROUTER_API_KEY=test\n", 0o600)
     _write(
@@ -151,7 +151,7 @@ def _write_wait_result(
     message: str = "deployment result",
     mode: int = 0o600,
 ) -> Path:
-    image_uri = image_uri or f"registry.example/team/trading-agents-adapted:{sha}"
+    image_uri = image_uri or f"registry.example/team/a-stock-rachtrader:{sha}"
     result_file = deploy_dir / "run/deploy-results/acr/100.1.result"
     _write(
         result_file,
@@ -180,7 +180,7 @@ def _run_result_waiter(deploy_dir: Path, **extra_env: str):
         "GIT_SHA": SHA,
         "DEPLOY_RUN_ID": "100",
         "DEPLOY_RUN_ATTEMPT": "1",
-        "IMAGE_URI": f"registry.example/team/trading-agents-adapted:{SHA}",
+        "IMAGE_URI": f"registry.example/team/a-stock-rachtrader:{SHA}",
         "DEPLOY_RESULT_TIMEOUT_SECONDS": "1",
         "DEPLOY_RESULT_POLL_INTERVAL_SECONDS": "1",
     }
@@ -243,7 +243,7 @@ case "${1:-}" in
       *State.Running*) printf 'true\n' ;;
       *State.Health*) printf 'healthy\n' ;;
       *Config.Image*) cat "$FAKE_DEPLOY_DIR/current-image" ;;
-      *io.beixi.deploy.sha*) cat "$FAKE_DEPLOY_DIR/current-sha" ;;
+      *io.rachel.deploy.sha*) cat "$FAKE_DEPLOY_DIR/current-sha" ;;
       *.Image*) printf 'sha256:container-image\n' ;;
       *) printf 'unexpected docker inspect format: %s\n' "$format" >&2; exit 2 ;;
     esac
@@ -296,7 +296,7 @@ def test_deploy_baseline_reads_matching_state_and_runtime_identity(tmp_path: Pat
     deploy_dir = tmp_path / "deploy"
     release_dir = deploy_dir / "releases" / SHA
     fake_bin = tmp_path / "bin"
-    image_uri = f"registry.example/team/trading-agents-adapted:{SHA}"
+    image_uri = f"registry.example/team/a-stock-rachtrader:{SHA}"
     _write(release_dir / "docker-compose.server.yml", "services: {}\n")
     _write(
         deploy_dir / ".deploy-current",
@@ -328,7 +328,7 @@ def test_deploy_baseline_reads_matching_state_and_runtime_identity(tmp_path: Pat
         deploy_dir,
         fake_bin,
         FAKE_CONTAINER_IDS="container-1\n",
-        FAKE_CONTAINER_IMAGE="registry.example/team/trading-agents-adapted:wrong",
+        FAKE_CONTAINER_IMAGE="registry.example/team/a-stock-rachtrader:wrong",
         FAKE_CONTAINER_SHA=SHA,
     )
     assert result.returncode != 0
@@ -341,7 +341,7 @@ def test_deploy_baseline_verifies_each_service_from_release_compose(tmp_path: Pa
     deploy_dir = tmp_path / "deploy"
     release_dir = deploy_dir / "releases" / SHA
     fake_bin = tmp_path / "bin"
-    image_uri = f"registry.example/team/trading-agents-adapted:{SHA}"
+    image_uri = f"registry.example/team/a-stock-rachtrader:{SHA}"
     _write(release_dir / "docker-compose.server.yml", "services: {}\n")
     _write(
         deploy_dir / ".deploy-current",
@@ -454,7 +454,7 @@ def test_launcher_detaches_and_returns_after_startup_window(tmp_path: Path):
         "GIT_SHA": SHA,
         "DEPLOY_RUN_ID": "100",
         "DEPLOY_RUN_ATTEMPT": "1",
-        "IMAGE_URI": f"registry.example/team/trading-agents-adapted:{SHA}",
+        "IMAGE_URI": f"registry.example/team/a-stock-rachtrader:{SHA}",
         "DEPLOY_STARTUP_WAIT_SECONDS": "1",
     }
 
@@ -528,7 +528,7 @@ def test_result_waiter_rejects_untrusted_or_mismatched_exact_result(
             deploy_dir,
             "success",
             sha=NEWER_SHA,
-            image_uri=f"registry.example/team/trading-agents-adapted:{NEWER_SHA}",
+            image_uri=f"registry.example/team/a-stock-rachtrader:{NEWER_SHA}",
         )
     elif invalid_kind == "permissions":
         _write_wait_result(deploy_dir, "success", mode=0o644)
@@ -591,7 +591,7 @@ def test_superseded_background_cannot_overwrite_latest_result(tmp_path: Path):
                 "run_id=101",
                 "run_attempt=1",
                 f"sha={NEWER_SHA}",
-                f"image_uri=registry.example/team/trading-agents-adapted:{NEWER_SHA}",
+                f"image_uri=registry.example/team/a-stock-rachtrader:{NEWER_SHA}",
                 "",
             ]
         ),
@@ -605,7 +605,7 @@ def test_superseded_background_cannot_overwrite_latest_result(tmp_path: Path):
         "DEPLOY_DIR": str(deploy_dir),
         "RELEASE_DIR": str(release_dir),
         "GIT_SHA": SHA,
-        "IMAGE_URI": f"registry.example/team/trading-agents-adapted:{SHA}",
+        "IMAGE_URI": f"registry.example/team/a-stock-rachtrader:{SHA}",
         "DEPLOY_REQUEST_ID": "100.1",
         "AGENT_RUNTIME_ENV_FILE": str(agent_runtime_env),
     }
@@ -827,7 +827,7 @@ def test_background_controlled_failure_restores_verified_previous_release(tmp_pa
     previous_sha = "c" * 40
     deploy_dir, _, fake_bin, _, env = _prepare_background(tmp_path)
     previous_release = deploy_dir / "releases" / previous_sha
-    previous_image = f"registry.example/team/trading-agents-adapted:{previous_sha}"
+    previous_image = f"registry.example/team/a-stock-rachtrader:{previous_sha}"
     _write(previous_release / "docker-compose.server.yml", "services: {}\n")
     _write(
         deploy_dir / ".deploy-current",
@@ -869,7 +869,7 @@ def test_background_reports_primary_and_rollback_smoke_failure_stage(tmp_path: P
     previous_sha = "c" * 40
     deploy_dir, _, fake_bin, _, env = _prepare_background(tmp_path)
     previous_release = deploy_dir / "releases" / previous_sha
-    previous_image = f"registry.example/team/trading-agents-adapted:{previous_sha}"
+    previous_image = f"registry.example/team/a-stock-rachtrader:{previous_sha}"
     _write(previous_release / "docker-compose.server.yml", "services: {}\n")
     _write(
         deploy_dir / ".deploy-current",
@@ -1030,7 +1030,7 @@ def test_background_rejects_release_path_outside_sha_directory(tmp_path: Path):
         "DEPLOY_DIR": str(deploy_dir),
         "RELEASE_DIR": str(wrong_release),
         "GIT_SHA": SHA,
-        "IMAGE_URI": f"registry.example/team/trading-agents-adapted:{SHA}",
+        "IMAGE_URI": f"registry.example/team/a-stock-rachtrader:{SHA}",
         "DEPLOY_REQUEST_ID": "100.1",
     }
     result = subprocess.run(

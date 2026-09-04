@@ -4,7 +4,7 @@
 - 发现/决策日期：2026-08-21
 - 决策人：用户（选择最小 fail-closed 预检）
 - 负责人：当前会话（用户已将严格 QA 任务发现的偏移转交本会话落实）
-- 相关 PR：<https://github.com/BeixiHub/trading-agents-adapted/pull/15>
+- 相关 PR：<https://github.com/rra7963/A-stock-rachtrader/pull/15>
 - 锁定提交：`3e5f9d99a04712b05d514569e9eec595bf7f44d1`
 
 ## 原设计及位置
@@ -91,7 +91,7 @@ Bedrock extra 与未配置 DeepSeek live key。严格全仓 Ruff、部署合同�
 `26 passed` 均通过。
 
 Python 3.12 全新临时环境完成 115 个依赖安装，并通过包、API、integrations、CLI 与预检器导入
-以及两个 CLI help。生产 Dockerfile 镜像 `trading-agents-adapted:pr15-provider-fix` 构建成功，
+以及两个 CLI help。生产 Dockerfile 镜像 `a-stock-rachtrader:pr15-provider-fix` 构建成功，
 镜像用户为 `appuser`；包/预检器导入、组合 CLI help 和 Dynamic Agent 示例 help 均在
 `--network=none` 下通过。
 

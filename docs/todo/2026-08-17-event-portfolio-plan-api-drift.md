@@ -7,7 +7,7 @@
 - **负责人**：本会话实现与验证；Rachel 保持 PR #6-#12 原任务所有权；仓库 maintainer review/merge/deploy
 - **基线**：`main@d8bd1896460420aecee26ec06e98cab437a01ac8`
 - **当前分支**：`feat/api-event-portfolio-plan`
-- **相关 PR/commit**：[trading-agents-adapted#13](https://github.com/BeixiHub/trading-agents-adapted/pull/13) / `7eb388c8f5c6fa0e524007fc9e375f253944e996`
+- **相关 PR/commit**：[a-stock-rachtrader#13](https://github.com/rra7963/A-stock-rachtrader/pull/13) / `7eb388c8f5c6fa0e524007fc9e375f253944e996`
 
 ## 原设计及位置
 
@@ -40,7 +40,7 @@
 
 ## 解决条件
 
-TA schema/planner/API/store、TestingStrategies producer/executor、DeepSeekData consumer、三仓文档与测试
+TA schema/planner/API/store、Rachel downstream execution service producer/executor、downstream data consumer consumer、三仓文档与测试
 全部重新一致，并有最终 diff、完整回归与 exact-head CI 证据后，才能更新为 `已解决`。
 
 ## 解决证据与仍未覆盖边界
@@ -51,9 +51,9 @@ TA 实现 commit `5f04d2ef14ae150934f610f142bc13373db86385` 已完成 closed sch
 CI run `32009973622` 的 Python 3.10/3.11/3.12/3.13、clean-install、strict Ruff、部署合同、镜像构建和
 CI Gate 全部通过。
 
-跨仓闭环也已取得独立精确 head 证据：TestingStrategies PR #152 commit
+跨仓闭环也已取得独立精确 head 证据：Rachel downstream execution service PR #152 commit
 `93e40fbac43d771e86c39dd3db9d9f4f757f16bf` 与 CI run `32010072246` 验证 canonical request hash、
-response binding、执行和 v2 producer；DeepSeekData PR #57 implementation/CI head
+response binding、执行和 v2 producer；downstream data consumer PR #57 implementation/CI head
 `c76141d265d9a40528caea06018c9f1e2f01e2a7` 与 CI run `32022698447` 验证 v1/v2 consumer。结合最终
 diff 复核，TA 仍只拥有账户无关的目标组合研究，TS 独占 broker/订单/成交事实，事件、deadline、
 partial provenance、长仓无杠杆和精确 100% 协议均符合批准后的设计，因此状态更新为 `已解决`。
@@ -63,7 +63,7 @@ partial provenance、长仓无杠杆和精确 100% 协议均符合批准后的�
 
 ## 2026-08-17 跨仓 strict QA 重开
 
-TA API 自身的测试与 review 结论仍为 PASS，但 TestingStrategies #152 后续 strict QA 在实现 head 发现
+TA API 自身的测试与 review 结论仍为 PASS，但 Rachel downstream execution service #152 后续 strict QA 在实现 head 发现
 组合 intent 与 legacy 硬退出 intent 未按股票统一仲裁，以及不可卖时过早写入日内 marker。该问题不
 改变本仓 API 代码，却使本 TODO 的“三仓 producer/executor/consumer 全部重新一致”解决条件暂时不再
 成立。因此本记录重开为 `已决策待落地`；在 #152 专项偏移完成用户决策、修复和复审前，不以本仓
@@ -71,7 +71,7 @@ TA API 自身的测试与 review 结论仍为 PASS，但 TestingStrategies #152 
 
 ## 2026-08-17 跨仓 strict QA 解决证据
 
-TestingStrategies #152 已按用户决定以 fix
+Rachel downstream execution service #152 已按用户决定以 fix
 `341c893ee0ad2b5ded58b5118c6f166d4f041d78` 完成 legacy hard-exit 与 portfolio intent 的按股票原子
 仲裁，并把持仓风险 trigger 与实际 order intent 分离。accepted/unknown、未决 buy/sell、部分成交、
 被拒绝的买/卖、同日重启、真正 T+1 与新旧 position 边界均有回归；TS 本地全仓为 2803 passed、
@@ -80,7 +80,7 @@ rereview `4951182313` 精确绑定该 fix head 并给出 `COMMENTED + PASS`，�
 
 本仓重开记录 head `03b71567ddc8d4f81fed0012cc2b29a0347774c1` 的 CI run `32023788960` 全绿；TA
 实现仍是已审查的 `5f04d2ef14ae150934f610f142bc13373db86385`，外部 schema、canonical hash 和账户无关
-职责未改变。DeepSeekData #57 final head `5b206610e7ae7c07a23ed5e55210f1d3a7678d29` 的 exact check job
+职责未改变。downstream data consumer #57 final head `5b206610e7ae7c07a23ed5e55210f1d3a7678d29` 的 exact check job
 `95366108471` 为 SUCCESS，v1/v2 consumer 仍向后兼容。三仓代码、配置、测试与批准后的协议再次一致，
 因此本记录恢复为 `已解决`。
 
@@ -92,7 +92,7 @@ rereview `4951182313` 精确绑定该 fix head 并给出 `COMMENTED + PASS`，�
 恢复 PR #15 已获独立批准并以 squash commit
 `d8bd1896460420aecee26ec06e98cab437a01ac8` 合入 `main`。该提交的 main CI run
 `32461712153` 全绿，ACR workflow run `32461848195` 成功登记后台发布；163 正式服的
-`.deploy-current-sha`、release、两个受管容器镜像 URI 与 `io.beixi.deploy.sha` 均精确指向该
+`.deploy-current-sha`、release、两个受管容器镜像 URI 与 `io.rachel.deploy.sha` 均精确指向该
 提交，两个服务 healthy，部署结果记录全部 smoke 通过。因此原组合依赖不再停留在中间堆叠分支。
 
 在改写前为旧 #13 head `166e1dc57f48cee4e79cfe9a3fef2017fcb2ec48` 保留本地备份引用。
@@ -105,8 +105,8 @@ rereview `4951182313` 精确绑定该 fix head 并给出 `COMMENTED + PASS`，�
 - `166e1dc` → `5aac68e`：记录跨仓 strict-QA 解决证据。
 
 四组 `git range-diff` 均为 `=`，rebase 无冲突；相对新 `main` 的实际产品增量仍仅为 16 个
-API/schema/store/test/部署说明文件，没有重新携带 #6-#12 历史，也没有修改 TestingStrategies、
-DeepSeekData、账户、券商或交易职责。正式设计的事件、deadline、partial provenance、严格输出、
+API/schema/store/test/部署说明文件，没有重新携带 #6-#12 历史，也没有修改 Rachel downstream execution service、
+downstream data consumer、账户、券商或交易职责。正式设计的事件、deadline、partial provenance、严格输出、
 长仓无杠杆、精确 100% 与账户无关边界未发生变化。最终本地门禁、远端安全更新和新 exact-head
 GitHub CI 仍须完成，不能用旧 head 的绿色结果替代。
 

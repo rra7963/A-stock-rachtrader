@@ -4,8 +4,8 @@
 - **当前状态**：已解决
 - **决策日期/决策人**：2026-08-13 / 用户（要求修复 GitHub #4 且不得引入新问题）
 - **发现日期**：2026-08-13
-- **负责人**：trading-agents-adapted maintainer；修复后由严格 QA 复审
-- **相关 PR/commit**：[trading-agents-adapted #4](https://github.com/BeixiHub/trading-agents-adapted/pull/4)
+- **负责人**：a-stock-rachtrader maintainer；修复后由严格 QA 复审
+- **相关 PR/commit**：[a-stock-rachtrader #4](https://github.com/rra7963/A-stock-rachtrader/pull/4)
   `05e7025505c0e5707736fedc761031514480a44e`
 
 ## 原设计及位置
@@ -36,7 +36,7 @@
 - 两个 TradingAgents graph/provider 调用可在同一进程并发，违反成本、资源和隔离边界。
 - 被取消请求的持久状态不立即终态化，同 request id 在当前进程内只能返回 in-progress，审计状态与
   实际 HTTP 结果不一致。
-- TestingStrategies 依赖该单并发保证；因此本项阻塞 PR #4 及其下游 activation。
+- Rachel downstream execution service 依赖该单并发保证；因此本项阻塞 PR #4 及其下游 activation。
 
 ## 可选处理方案
 
@@ -61,10 +61,10 @@ schema。修复、对抗测试、Python 3.10–3.13/full CI 和严格 QA 复审�
   迟到异常，以及 worker 退出后下一请求恢复；focused event-plan 测试 9 passed。
 - Python 3.10、3.11、3.12、3.13 本地全仓分别为 `707 passed, 2 skipped, 69 subtests passed`；Ruff
   通过。GitHub Actions run
-  [`31715588897`](https://github.com/BeixiHub/trading-agents-adapted/actions/runs/31715588897) 的四版本
+  [`31715588897`](https://github.com/rra7963/A-stock-rachtrader/actions/runs/31715588897) 的四版本
   测试、clean-install、Ruff、deployment/image 和 CI Gate 共 8 项全部成功。
 - 严格 QA discussion：
-  [request cancellation 反证](https://github.com/BeixiHub/trading-agents-adapted/pull/4#discussion_r3776562429)。
+  [request cancellation 反证](https://github.com/rra7963/A-stock-rachtrader/pull/4#discussion_r3776562429)。
 - 剩余边界与既有设计一致：Python 不能强制终止已经进入 provider 的线程，所以取消后仍等待其真实
   退出；本修复不声称中止外部 LLM 调用。未调用真实 LLM、数据库或 broker，未 merge、deploy 或连接
   正式服。

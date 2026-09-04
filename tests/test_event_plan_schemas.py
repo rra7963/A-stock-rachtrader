@@ -11,7 +11,7 @@ from tradingagents.api.schemas import EventTradePlanRequest
 def valid_request_payload() -> dict:
     return {
         "schema_version": "1.0",
-        "request_id": "supporting_lobster:event-123:2026-08-13",
+        "request_id": "rachel_executor:event-123:2026-08-13",
         "requested_at": "2026-08-13T10:02:00+08:00",
         "event": {
             "event_id": "event-123",

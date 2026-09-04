@@ -174,7 +174,7 @@ Python 3.12 全新安装和断网镜像 smoke 相互独立。
 
 至此五项解决条件全部满足：#15 已进入 `main` 并完成 main/部署验证；#13 只重放四个专属提交，
 四组 `range-diff` 为 `=`；PR base 已切到 `main`；实际文件列表、完整本地门禁和新 exact-head CI
-全部复核。组合研究仍由 TA 拥有，broker/订单/成交事实仍由 TestingStrategies 拥有，未新增外部
+全部复核。组合研究仍由 TA 拥有，broker/订单/成交事实仍由 Rachel downstream execution service 拥有，未新增外部
 协议、安全门或数据所有权偏移，符合既有设计预期，因此状态更新为 `已解决`。
 
 该状态只关闭“组合能力未传播到 main”及其对 #13 rebase 的阻塞。PR #13 仍为 OPEN 且需要独立

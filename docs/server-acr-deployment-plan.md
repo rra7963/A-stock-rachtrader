@@ -2,9 +2,9 @@
 
 > 状态：已确认；2026-08-13 事件交易计划 API 扩展已批准并实施中
 > 编写日期：2026-08-06
-> 目标仓库：`BeixiHub/trading-agents-adapted`
-> 目标服务器：与 `TestingStrategies` 相同的 `root@163.7.6.239`
-> 推荐部署目录：`/opt/trading-agents-adapted`
+> 目标仓库：`rra7963/A-stock-rachtrader`
+> 目标服务器：与 `Rachel downstream execution service` 相同的 `<deployment-user>@<deployment-host>`
+> 推荐部署目录：`/opt/a-stock-rachtrader`
 
 > 2026-08-13 扩展说明：初版方案中“单个 CLI 工具箱、无 HTTP 端口”描述的是当时基线。
 > 经用户批准，当前设计保留 CLI 并新增不发布宿主机端口的私网事件计划 API；协议、职责和安全
@@ -14,7 +14,7 @@
 
 ## 1. 目标
 
-为 `trading-agents-adapted` 建立与 `TestingStrategies` 同类的交付链路：
+为 `a-stock-rachtrader` 建立与 `Rachel downstream execution service` 同类的交付链路：
 
 1. 所有代码变更通过 Pull Request 进入 `main`。
 2. PR 必须通过必要的测试、lint、Docker 和部署契约检查。
@@ -31,8 +31,8 @@
 
 ### 2.1 仓库与分支保护
 
-- 本地仓库：`C:\Users\hanji\workspace\trading-agents-adapted`
-- GitHub 仓库：`BeixiHub/trading-agents-adapted`，私有仓库。
+- 本地仓库：`C:\workspace\a-stock-rachtrader`
+- GitHub 仓库：`rra7963/A-stock-rachtrader`，私有仓库。
 - 当前 `main` 与 `origin/main` 指向同一提交 `8a225ba`。
 - GitHub 已存在作用于 `main` 的 active ruleset：
   - 禁止删除分支；
@@ -67,8 +67,8 @@ docker compose exec tradingagents tradingagents
 - 架构：`x86_64`
 - Docker：`29.1.3`
 - Docker Compose：`2.40.3`
-- `/opt/trading-strategies` 已运行 `TestingStrategies` 的 ACR 异步部署体系。
-- 服务器已登录 ACR：`beixiai-prod-acr-registry.cn-hangzhou.cr.aliyuncs.com`。
+- `/opt/downstream-execution` 已运行 `Rachel downstream execution service` 的 ACR 异步部署体系。
+- 服务器已登录 ACR：`your-acr-registry.example.com`。
 - 当前根分区约 99 GB，已使用约 80 GB，使用率 85%。新流程必须有项目级保留和清理策略，不能无限累积镜像与 release 目录。
 
 ### 2.4 当前 `main` 工作目录中的未提交改动
@@ -91,7 +91,7 @@ docker compose exec tradingagents tradingagents
 
 ### 3.1 服务器部署 worktree
 
-- 路径：`C:\Users\hanji\workspace\trading-agents-adapted-server-deploy`
+- 路径：`C:\workspace\a-stock-rachtrader-server-deploy`
 - 分支：`codex/server-acr-deploy`
 - 基线：干净的 `origin/main`
 - 用途：生产镜像、PR 部署检查、ACR workflow、服务器异步部署脚本、生产 runbook。
@@ -110,7 +110,7 @@ docker compose exec tradingagents tradingagents
 
 ### 3.2 本地部署 worktree
 
-- 路径：`C:\Users\hanji\workspace\trading-agents-adapted-local-deploy`
+- 路径：`C:\workspace\a-stock-rachtrader-local-deploy`
 - 分支：`codex/local-docker-deploy`
 - 基线：开始迁移时使用 `origin/main`；服务器 PR 合并后再 rebase 到最新 `main`。
 - 用途：只保留本地 Docker 使用体验和 Windows 配置生成逻辑。
@@ -222,7 +222,7 @@ ruleset 只要求 `CI Gate`，而不是绑定每个矩阵 job 名称。这样以
 推荐镜像格式：
 
 ```text
-<ACR_REGISTRY>/<ACR_NAMESPACE>/trading-agents-adapted:<40位Git SHA>
+<ACR_REGISTRY>/<ACR_NAMESPACE>/a-stock-rachtrader:<40位Git SHA>
 ```
 
 生产部署只使用完整 Git SHA 标签，不使用 `latest`。可以额外推送便于人工查看的标签，但服务器脚本不得以可变标签部署。
@@ -237,7 +237,7 @@ ruleset 只要求 `CI Gate`，而不是绑定每个矩阵 job 名称。这样以
 
 ### 6.3 ACR 前置条件
 
-- 复用已有、且当前账号具备 push/pull 权限的 namespace，并使用独立 repository 名 `trading-agents-adapted`。
+- 复用已有、且当前账号具备 push/pull 权限的 namespace，并使用独立 repository 名 `a-stock-rachtrader`。
 
 ## 7. GitHub Actions 配置
 
@@ -245,7 +245,7 @@ ruleset 只要求 `CI Gate`，而不是绑定每个矩阵 job 名称。这样以
 
 | 名称              | 含义                                                           |
 | ----------------- | -------------------------------------------------------------- |
-| `ACR_REGISTRY`  | 例如 `beixiai-prod-acr-registry.cn-hangzhou.cr.aliyuncs.com` |
+| `ACR_REGISTRY`  | 例如 `your-acr-registry.example.com` |
 | `ACR_NAMESPACE` | 经确认存在且有权限的 namespace                                 |
 
 ### 7.2 Repository Secrets
@@ -254,12 +254,12 @@ ruleset 只要求 `CI Gate`，而不是绑定每个矩阵 job 名称。这样以
 | ------------------- | --------------------------------------------------- |
 | `ACR_USERNAME`    | GitHub runner 推送镜像使用的 ACR 账号               |
 | `ACR_PASSWORD`    | GitHub runner 推送镜像使用的 ACR密码                |
-| `DEPLOY_HOST`     | `163.7.6.239`                                     |
+| `DEPLOY_HOST`     | `<deployment-host>`                               |
 | `DEPLOY_USER`     | 初始可复用 `root`，长期建议改为受限部署用户       |
 | `DEPLOY_PASSWORD` | 与参考项目一致的 SSH 密码；长期建议改为独立 SSH key |
-| `DEPLOY_PATH`     | `/opt/trading-agents-adapted`                     |
+| `DEPLOY_PATH`     | `/opt/a-stock-rachtrader`                     |
 
-GitHub Secrets 无法从 `TestingStrategies` 读取后复制，必须由有权限的人重新录入。
+GitHub Secrets 无法从 `Rachel downstream execution service` 读取后复制，必须由有权限的人重新录入。
 
 ### 7.3 workflow 触发
 
@@ -273,7 +273,7 @@ GitHub Secrets 无法从 `TestingStrategies` 读取后复制，必须由有权�
 GitHub Actions 只向以下目录上传非敏感文件：
 
 ```text
-/opt/trading-agents-adapted/releases/<Git SHA>/
+/opt/a-stock-rachtrader/releases/<Git SHA>/
 ├── docker-compose.server.yml
 └── scripts/
     └── deploy-acr-background.sh
@@ -297,7 +297,7 @@ bundle、不执行 Docker 或进程控制，也不读取 `.deploy-last-result.ac
 推荐目录结构：
 
 ```text
-/opt/trading-agents-adapted/
+/opt/a-stock-rachtrader/
 ├── .env                         # 应用运行密钥，600
 ├── .event-plan-api.env          # API bearer token，600
 ├── .deploy.env                  # 服务器 ACR pull 凭据，600
@@ -315,9 +315,9 @@ bundle、不执行 Docker 或进程控制，也不读取 `.deploy-last-result.ac
 
 持久化数据使用显式命名的 Docker volumes，避免 release 目录变化导致新建卷：
 
-- `trading-agents-adapted-data`
-- `trading-agents-adapted-reports`
-- `trading-agents-adapted-api-data`
+- `a-stock-rachtrader-data`
+- `a-stock-rachtrader-reports`
+- `a-stock-rachtrader-api-data`
 
 ### 9.1 `.env`
 
@@ -332,14 +332,14 @@ ACR_PULL_USER=...
 ACR_PULL_PASSWORD=...
 ```
 
-可以在服务器内部从现有 `TestingStrategies` 配置安全复制相同 ACR 凭据，但不得把值打印到终端、Actions 日志或方案文档中。不建议直接 source `/opt/trading-strategies/.env`，否则两个项目会形成不必要的配置耦合。
+可以在服务器内部从现有 `Rachel downstream execution service` 配置安全复制相同 ACR 凭据，但不得把值打印到终端、Actions 日志或方案文档中。不建议直接 source `/opt/downstream-execution/.env`，否则两个项目会形成不必要的配置耦合。
 
 ### 9.3 `.event-plan-api.env` 与共享网络
 
 `.event-plan-api.env` 只保存 API 专属配置：独立高熵 `TRADINGAGENTS_API_BEARER_TOKEN`，以及可选、
 闭合为 `1..4` 且默认 4 的 `TRADINGAGENTS_PORTFOLIO_ANALYSIS_CONCURRENCY`。不得复用或包含 LLM、
 数据库、ACR、SSH 凭据。CLI service 不加载该文件。`event-plan-api` 与调用方
-`supporting_lobster` 加入预先创建的 external bridge network `beixi-trading-internal`；Compose
+`rachel_executor` 加入预先创建的 external bridge network `rachel-trading-internal`；Compose
 不发布 host port。网络和两端匹配 token 必须在 activation/deploy 前由运维准备，GitHub Actions
 不创建或修改它们。
 
@@ -353,7 +353,7 @@ Actions 在任何镜像构建或部署请求登记之前执行 `scripts/read-dep
 2. `.deploy-current` 与 `.deploy-current-sha` 必须同时存在或同时不存在，不接受符号链接、部分 state 或未知字段。
 3. 已有 state 时，SHA、镜像 URI、release 目录、Compose 文件和 marker 必须一致。
 4. 从 current release 自己的 Compose `config --services` 推导预期 service 集合；项目容器数必须
-   精确匹配，每个 service 必须恰好一个容器，镜像 URI 与 `io.beixi.deploy.sha` 标签必须和 state
+   精确匹配，每个 service 必须恰好一个容器，镜像 URI 与 `io.rachel.deploy.sha` 标签必须和 state
    一致。不以 running/healthy 作为构建前置条件，以允许用新版本修复故障容器。
 5. 首次部署只有在没有 state 且没有受管容器时返回 `bootstrap`。
 
@@ -473,9 +473,9 @@ GitHub workflow 必须等待自己的逐请求文件进入终态。前三个成�
 服务器必须可用以下命令查看状态：
 
 ```bash
-cat /opt/trading-agents-adapted/.deploy-last-result.acr
-tail -n 200 /opt/trading-agents-adapted/logs/deploy-acr.*.log
-deploy_dir=/opt/trading-agents-adapted
+cat /opt/a-stock-rachtrader/.deploy-last-result.acr
+tail -n 200 /opt/a-stock-rachtrader/logs/deploy-acr.*.log
+deploy_dir=/opt/a-stock-rachtrader
 sha="$(cat "$deploy_dir/.deploy-current-sha")"
 image_uri="$(sed -n 's/^image_uri=//p' "$deploy_dir/.deploy-current")"
 TRADINGAGENTS_IMAGE="$image_uri" \
@@ -483,13 +483,13 @@ TRADINGAGENTS_ENV_FILE="$deploy_dir/.env" \
 TRADINGAGENTS_API_ENV_FILE="$deploy_dir/.event-plan-api.env" \
 AGENT_RUNTIME_ENV_FILE="/opt/etf-agent-runtime-tunnel/secrets/internal-agent-caller.env" \
 GIT_SHA="$sha" \
-  docker compose -p trading-agents-adapted \
+  docker compose -p a-stock-rachtrader \
     --project-directory "$deploy_dir" \
     -f "$deploy_dir/releases/$sha/docker-compose.server.yml" \
     ps
 ```
 
-推荐复用 `TestingStrategies` 的服务器侧飞书通知思路：后台脚本在 success、rolled_back、failed、
+推荐复用 `Rachel downstream execution service` 的服务器侧飞书通知思路：后台脚本在 success、rolled_back、failed、
 rollback_failed 时通知。通知仍完全在服务器发送；GitHub 的结果等待不代替通知，也不接触 webhook。
 
 ## 12. 回滚与清理
@@ -554,7 +554,7 @@ runbook 应提供按 SHA 回滚的显式命令，但手工回滚也要使用相�
 
 1. 确认或创建 ACR namespace/repository。
 2. 配置 GitHub Variables 和 Secrets。
-3. 在 `/opt/trading-agents-adapted` 创建目录和最小权限文件。
+3. 在 `/opt/a-stock-rachtrader` 创建目录和最小权限文件。
 4. 安全写入 `.env`、`.event-plan-api.env` 和 `.deploy.env`，创建/核验共享 external network。
 5. 验证服务器 ACR pull、Docker Compose、flock、磁盘、共享网络和卷命名。
 6. 不启动正式部署。
@@ -605,7 +605,7 @@ runbook 应提供按 SHA 回滚的显式命令，但手工回滚也要使用相�
 
 ### 服务器
 
-- [ ] 代码和 runtime 目录位于 `/opt/trading-agents-adapted`。
+- [ ] 代码和 runtime 目录位于 `/opt/a-stock-rachtrader`。
 - [ ] 服务器不拉 Git、不构建镜像。
 - [ ] 每次镜像构建前都等待部署锁并成功读取、校验服务器 current state；首次 bootstrap 不得已有受管容器。
 - [ ] launcher 在约 2–10 秒的远程登记窗口后返回；GitHub workflow 随后有界等待本次精确终态。
@@ -664,7 +664,7 @@ runbook 应提供按 SHA 回滚的显式命令，但手工回滚也要使用相�
 - 第一版即加入服务器侧结果通知；
 - 首次上线沿用现有 SSH 密码流程以降低迁移变量，稳定后再切换受限用户和 SSH key。
 
-该设计保留了 `TestingStrategies` 已验证的核心模式，同时支持同一不可变 release 内的 CLI 与私网
+该设计保留了 `Rachel downstream execution service` 已验证的核心模式，同时支持同一不可变 release 内的 CLI 与私网
 API services。服务器后台脚本独占部署真实性、动态 service 集合、容器 mutation、并发顺序和失败回滚；
 GitHub workflow 只读本次精确结果并据终态给出绿色或红色结论，不接管服务器职责，也不再把“已受理”
 冒充“已部署”。

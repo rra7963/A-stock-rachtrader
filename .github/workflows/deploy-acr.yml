@@ -90,7 +90,7 @@ jobs:
         env:
           DEPLOY_DIR: ${{ secrets.DEPLOY_PATH }}
           DEPLOY_LOCK_TIMEOUT_SECONDS: "1800"
-          COMPOSE_PROJECT_NAME: trading-agents-adapted
+          COMPOSE_PROJECT_NAME: a-stock-rachtrader
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -115,7 +115,7 @@ jobs:
         if: env.REUSE_EXISTING_RELEASE == 'false'
         id: immutable-image
         env:
-          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/trading-agents-adapted:${{ env.DEPLOY_SHA }}
+          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/a-stock-rachtrader:${{ env.DEPLOY_SHA }}
         run: |
           set -euo pipefail
           inspect_error="$RUNNER_TEMP/image-inspect-error.txt"
@@ -142,7 +142,7 @@ jobs:
           env.REUSE_EXISTING_RELEASE == 'false' &&
           steps.immutable-image.outputs.exists != 'true'
         env:
-          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/trading-agents-adapted:${{ env.DEPLOY_SHA }}
+          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/a-stock-rachtrader:${{ env.DEPLOY_SHA }}
         run: |
           set -euo pipefail
           docker buildx build \
@@ -154,12 +154,12 @@ jobs:
 
       - name: Verify the immutable image manifest is visible
         env:
-          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/trading-agents-adapted:${{ env.DEPLOY_SHA }}
+          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/a-stock-rachtrader:${{ env.DEPLOY_SHA }}
         run: docker buildx imagetools inspect "$IMAGE_URI" >/dev/null
 
       - name: Verify the immutable image revision label
         env:
-          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/trading-agents-adapted:${{ env.DEPLOY_SHA }}
+          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/a-stock-rachtrader:${{ env.DEPLOY_SHA }}
         run: |
           set -euo pipefail
           docker pull --platform linux/amd64 "$IMAGE_URI" >/dev/null
@@ -199,7 +199,7 @@ jobs:
           GIT_SHA: ${{ env.DEPLOY_SHA }}
           DEPLOY_RUN_ID: ${{ github.run_id }}
           DEPLOY_RUN_ATTEMPT: ${{ github.run_attempt }}
-          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/trading-agents-adapted:${{ env.DEPLOY_SHA }}
+          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/a-stock-rachtrader:${{ env.DEPLOY_SHA }}
           DEPLOY_TEST_FORCE_FAILURE_AFTER_UP: ${{ env.DEPLOY_TEST_FORCE_FAILURE_AFTER_UP }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
         with:
@@ -217,7 +217,7 @@ jobs:
           GIT_SHA: ${{ env.DEPLOY_SHA }}
           DEPLOY_RUN_ID: ${{ github.run_id }}
           DEPLOY_RUN_ATTEMPT: ${{ github.run_attempt }}
-          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/trading-agents-adapted:${{ env.DEPLOY_SHA }}
+          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/a-stock-rachtrader:${{ env.DEPLOY_SHA }}
           DEPLOY_RESULT_TIMEOUT_SECONDS: "2700"
           DEPLOY_RESULT_POLL_INTERVAL_SECONDS: "5"
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1

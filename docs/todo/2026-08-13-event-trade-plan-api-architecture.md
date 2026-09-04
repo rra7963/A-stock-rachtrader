@@ -7,7 +7,7 @@
 - **负责人**：本任务由当前 Codex 会话负责实现与验证；仓库 maintainer 负责 review/merge/deploy
 - **基线**：`main` `f01c7c5d34d6824dc3748a709ef87ceffe90118a`
 - **当前分支**：`feat/api-event-trade-plan`
-- **相关 PR**：[#4](https://github.com/BeixiHub/trading-agents-adapted/pull/4)
+- **相关 PR**：[#4](https://github.com/rra7963/A-stock-rachtrader/pull/4)
 - **落地提交**：功能 `cbd4b5be231f0b6479a2605a32efc6db69482083`；严格合同修复
   `59e00eba3c8dbf13d2a240464d3ae8de9c0f72e5`
 
@@ -24,10 +24,10 @@
 
 ## 已批准变化
 
-为 TestingStrategies 的“配角小龙虾”提供同步、版本化、受认证的事件交易计划 API。保留 CLI
+为 Rachel downstream execution service 的“Rachel Executor”提供同步、版本化、受认证的事件交易计划 API。保留 CLI
 service，新增独立 API service；输入限于 S 级事件、调用方筛出的高相关普通 A 股候选和不含账户
 身份的组合摘要，输出最多一只股票的封闭买入计划或明确拒绝。API 不拥有账户、不调用券商、不卖出、
-不保证执行；TestingStrategies 是最终风险校验、幂等下单、持仓与 -9%/+20% 退出规则的 owner。
+不保证执行；Rachel downstream execution service 是最终风险校验、幂等下单、持仓与 -9%/+20% 退出规则的 owner。
 
 ## 证据与偏移原因
 

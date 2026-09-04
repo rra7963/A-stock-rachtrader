@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 DEPLOY_DIR="${DEPLOY_DIR:?DEPLOY_DIR is required}"
 DEPLOY_LOCK_TIMEOUT_SECONDS="${DEPLOY_LOCK_TIMEOUT_SECONDS:-1800}"
-COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-trading-agents-adapted}"
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-a-stock-rachtrader}"
 APP_ENV_FILE="$DEPLOY_DIR/.env"
 API_ENV_FILE="$DEPLOY_DIR/.event-plan-api.env"
 AGENT_RUNTIME_ENV_FILE="${AGENT_RUNTIME_ENV_FILE:-/opt/etf-agent-runtime-tunnel/secrets/internal-agent-caller.env}"
@@ -158,7 +158,7 @@ for service_name in "${expected_services[@]}"; do
     || die "expected exactly one managed container for service: $service_name"
   observed_identity="$(
     docker inspect \
-      --format '{{.Config.Image}}|{{index .Config.Labels "io.beixi.deploy.sha"}}' \
+      --format '{{.Config.Image}}|{{index .Config.Labels "io.rachel.deploy.sha"}}' \
       "${service_container_ids[0]}"
   )" || die "cannot inspect managed service container: $service_name"
   [ "$observed_identity" = "$image_uri|$sha" ] \

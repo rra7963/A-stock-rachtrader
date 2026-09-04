@@ -287,7 +287,7 @@ def test_portfolio_server_timeout_is_permanent_and_retains_shared_slot(tmp_path)
                 headers=headers(),
             )
             different = future_payload()
-            different["request_id"] = "supporting_lobster:portfolio:2099-08-18"
+            different["request_id"] = "rachel_executor:portfolio:2099-08-18"
             busy = await client.post(
                 "/v1/event-portfolio-plans",
                 json=different,

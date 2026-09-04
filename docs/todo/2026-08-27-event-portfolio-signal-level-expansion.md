@@ -18,14 +18,14 @@
 
 ## 实际变化与证据
 
-TestingStrategies 的配角小龙虾需要把“接收 A 级事件”和“允许科创板候选”作为两个独立开关，并在
+Rachel downstream execution service 的Rachel Executor需要把“接收 A 级事件”和“允许科创板候选”作为两个独立开关，并在
 生产版本化配置中开启；TA 必须收到真实 `S|A` provenance，并能研究 `688xxx/689xxx`。当前 closed
 schema 会在模型调用前拒绝上述输入，planner 还会把事件等级硬编码为 S，并把 688/689 错误映射到
 深圳后缀，构成跨仓外部协议偏移。
 
 ## 用户决定
 
-用户选择最小跨仓兼容方案：增加本仓 PR 与 TestingStrategies PR，不修改前端；TA 必须先
+用户选择最小跨仓兼容方案：增加本仓 PR 与 Rachel downstream execution service PR，不修改前端；TA 必须先
 merge/deploy，TS 才能 merge/deploy。本任务只授权代码、测试与未合并 PR，不授权 merge、部署、
 正式服务调用或交易。
 
@@ -68,4 +68,4 @@ LLM、自然事件、模拟盘或真实订单链路可用。
   所有权。TA 仍只输出账户无关目标权重，没有获得账户、券商、委托、成交或硬退出职责。
 
 仍未覆盖的边界：PR 尚未 merge/deploy，未运行 live LLM、自然事件或任何券商链路。发布硬门保持
-TA PR #16 先于 TestingStrategies PR #154。
+TA PR #16 先于 Rachel downstream execution service PR #154。

@@ -241,7 +241,7 @@ def test_server_timeout_is_permanent_for_the_request_id(tmp_path: Path):
             assert repeated.json()["error_code"] == "request_previously_failed"
 
             while_worker_is_late = deepcopy(payload)
-            while_worker_is_late["request_id"] = "supporting_lobster:event-late:2026-08-13"
+            while_worker_is_late["request_id"] = "rachel_executor:event-late:2026-08-13"
             while_worker_is_late["event"]["event_id"] = "event-late"
             busy = await client.post(
                 "/v1/event-trade-plans",
@@ -253,7 +253,7 @@ def test_server_timeout_is_permanent_for_the_request_id(tmp_path: Path):
             await asyncio.sleep(0.6)
             planner.delay = 0
             after_worker_exit = deepcopy(payload)
-            after_worker_exit["request_id"] = "supporting_lobster:event-after:2026-08-13"
+            after_worker_exit["request_id"] = "rachel_executor:event-after:2026-08-13"
             after_worker_exit["event"]["event_id"] = "event-after"
             accepted = await client.post(
                 "/v1/event-trade-plans",
@@ -270,7 +270,7 @@ def test_only_one_analysis_runs_at_a_time(tmp_path: Path):
     client = make_client(tmp_path, planner)
     first_payload = valid_request_payload()
     second_payload = deepcopy(first_payload)
-    second_payload["request_id"] = "supporting_lobster:event-456:2026-08-13"
+    second_payload["request_id"] = "rachel_executor:event-456:2026-08-13"
     second_payload["event"]["event_id"] = "event-456"
 
     with ThreadPoolExecutor(max_workers=1) as pool:
@@ -345,7 +345,7 @@ def test_client_cancellation_keeps_lock_until_worker_finishes(tmp_path: Path, la
             assert repeated.json()["error_code"] == "request_previously_failed"
 
             while_worker_runs = deepcopy(first_payload)
-            while_worker_runs["request_id"] = "supporting_lobster:event-cancelled-late:2026-08-13"
+            while_worker_runs["request_id"] = "rachel_executor:event-cancelled-late:2026-08-13"
             while_worker_runs["event"]["event_id"] = "event-cancelled-late"
             busy = await client.post(
                 "/v1/event-trade-plans",
@@ -363,7 +363,7 @@ def test_client_cancellation_keeps_lock_until_worker_finishes(tmp_path: Path, la
             await asyncio.sleep(0)
 
             after_worker_exit = deepcopy(first_payload)
-            after_worker_exit["request_id"] = "supporting_lobster:event-after-cancel:2026-08-13"
+            after_worker_exit["request_id"] = "rachel_executor:event-after-cancel:2026-08-13"
             after_worker_exit["event"]["event_id"] = "event-after-cancel"
             accepted = await client.post(
                 "/v1/event-trade-plans",

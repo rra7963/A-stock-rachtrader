@@ -107,7 +107,7 @@ finally:
 
 ```dotenv
 AGENT_RUNTIME_BASE_URL=http://etf-agent-runtime-tunnel:18001
-INTERNAL_AGENT_TOKEN=<TestingStrategies 内部调用令牌>
+INTERNAL_AGENT_TOKEN=<Rachel downstream execution service 内部调用令牌>
 ```
 
 生产服务器不需要开发者修改这两个值：
@@ -119,7 +119,7 @@ INTERNAL_AGENT_TOKEN=<TestingStrategies 内部调用令牌>
   `http://etf-agent-runtime-tunnel:18001`。
 
 OpenRouter key 不是 `DynamicAgentClient` 的固定配置，必须通过每次调用的
-`openrouter_api_key=...` 显式传入。服务器现有 `/opt/trading-agents-adapted/.env` 已为容器
+`openrouter_api_key=...` 显式传入。服务器现有 `/opt/a-stock-rachtrader/.env` 已为容器
 提供 `OPENROUTER_API_KEY`，所以示例代码直接传
 `openrouter_api_key=os.environ["OPENROUTER_API_KEY"]`。业务代码也可以根据请求、租户或策略动态选择
 其他 key，再把选中的值传给同一个参数，无需修改客户端或部署配置。
@@ -139,7 +139,7 @@ uv run --frozen ruff check tradingagents/integrations tradingagents/examples/dyn
 163 服务器部署后可执行真实冒烟。该命令会产生一次 OpenRouter 调用和费用：
 
 ```bash
-deploy_dir=/opt/trading-agents-adapted
+deploy_dir=/opt/a-stock-rachtrader
 sha="$(cat "$deploy_dir/.deploy-current-sha")"
 image_uri="$(sed -n 's/^image_uri=//p' "$deploy_dir/.deploy-current")"
 TRADINGAGENTS_IMAGE="$image_uri" \
@@ -147,7 +147,7 @@ TRADINGAGENTS_ENV_FILE="$deploy_dir/.env" \
 TRADINGAGENTS_API_ENV_FILE="$deploy_dir/.event-plan-api.env" \
 AGENT_RUNTIME_ENV_FILE="/opt/etf-agent-runtime-tunnel/secrets/internal-agent-caller.env" \
 GIT_SHA="$sha" \
-  docker compose -p trading-agents-adapted \
+  docker compose -p a-stock-rachtrader \
     --project-directory "$deploy_dir" \
     -f "$deploy_dir/releases/$sha/docker-compose.server.yml" \
     exec -T tradingagents \
