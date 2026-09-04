@@ -1,0 +1,231 @@
+name: Build ACR image and launch server deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      existing_sha:
+        description: Existing deployed SHA to redeploy/roll back without rebuilding
+        required: true
+        type: string
+      force_failure_after_up:
+        description: Inject a controlled post-up failure to verify rollback
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: deploy-acr-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-acr:
+    name: Build immutable image and verify server deployment
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref == 'refs/heads/main' &&
+       inputs.existing_sha != '') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_SHA: ${{ inputs.existing_sha || github.event.workflow_run.head_sha || github.sha }}
+      SOURCE_SHA: ${{ (github.event_name == 'workflow_dispatch' && github.sha) || github.event.workflow_run.head_sha }}
+      REUSE_EXISTING_RELEASE: ${{ (github.event_name == 'workflow_dispatch' && inputs.existing_sha != '') && 'true' || 'false' }}
+      DEPLOY_TEST_FORCE_FAILURE_AFTER_UP: ${{ inputs.force_failure_after_up && '1' || '0' }}
+    steps:
+      - name: Checkout trusted deployment source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Validate trigger, SHA, ACR, and deployment configuration
+        env:
+          ACR_REGISTRY: ${{ vars.ACR_REGISTRY }}
+          ACR_NAMESPACE: ${{ vars.ACR_NAMESPACE }}
+          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::DEPLOY_SHA must be a full lowercase Git SHA"
+            exit 1
+          }
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::SOURCE_SHA must be a full lowercase Git SHA"
+            exit 1
+          }
+          if [ "$REUSE_EXISTING_RELEASE" = "false" ] && [ "$DEPLOY_SHA" != "$SOURCE_SHA" ]; then
+            echo "::error::normal deployment must build the exact CI-approved SHA"
+            exit 1
+          fi
+          missing=0
+          for name in ACR_REGISTRY ACR_NAMESPACE ACR_USERNAME ACR_PASSWORD DEPLOY_HOST DEPLOY_USER DEPLOY_PASSWORD DEPLOY_PATH; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing required GitHub configuration: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Validate deployment contract
+        run: |
+          python scripts/validate_deploy_contract.py
+          bash -n scripts/read-deploy-baseline.sh scripts/launch-acr-deploy.sh \
+            scripts/deploy-acr-background.sh scripts/wait-acr-deploy-result.sh
+
+      - name: Read and validate current server deployment state before build
+        env:
+          DEPLOY_DIR: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_LOCK_TIMEOUT_SECONDS: "1800"
+          COMPOSE_PROJECT_NAME: trading-agents-adapted
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          timeout: 30s
+          command_timeout: 31m
+          envs: DEPLOY_DIR,DEPLOY_LOCK_TIMEOUT_SECONDS,COMPOSE_PROJECT_NAME
+          script_path: scripts/read-deploy-baseline.sh
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to ACR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ${{ vars.ACR_REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Preserve an existing immutable SHA image
+        if: env.REUSE_EXISTING_RELEASE == 'false'
+        id: immutable-image
+        env:
+          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/trading-agents-adapted:${{ env.DEPLOY_SHA }}
+        run: |
+          set -euo pipefail
+          inspect_error="$RUNNER_TEMP/image-inspect-error.txt"
+          if docker buildx imagetools inspect "$IMAGE_URI" >/dev/null 2>"$inspect_error"; then
+            docker pull --platform linux/amd64 "$IMAGE_URI" >/dev/null
+            revision="$(docker image inspect \
+              --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' \
+              "$IMAGE_URI")"
+            test "$revision" = "$DEPLOY_SHA" || {
+              echo "::error::Existing SHA image has an unexpected revision label"
+              exit 1
+            }
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif grep -Eqi 'manifest unknown|not found|no such manifest' "$inspect_error"; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            cat "$inspect_error" >&2
+            echo "::error::Could not determine whether the immutable image already exists"
+            exit 1
+          fi
+
+      - name: Build and push the immutable image
+        if: >-
+          env.REUSE_EXISTING_RELEASE == 'false' &&
+          steps.immutable-image.outputs.exists != 'true'
+        env:
+          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/trading-agents-adapted:${{ env.DEPLOY_SHA }}
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --platform linux/amd64 \
+            --label "org.opencontainers.image.revision=$DEPLOY_SHA" \
+            --tag "$IMAGE_URI" \
+            --push \
+            .
+
+      - name: Verify the immutable image manifest is visible
+        env:
+          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/trading-agents-adapted:${{ env.DEPLOY_SHA }}
+        run: docker buildx imagetools inspect "$IMAGE_URI" >/dev/null
+
+      - name: Verify the immutable image revision label
+        env:
+          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/trading-agents-adapted:${{ env.DEPLOY_SHA }}
+        run: |
+          set -euo pipefail
+          docker pull --platform linux/amd64 "$IMAGE_URI" >/dev/null
+          revision="$(docker image inspect \
+            --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' \
+            "$IMAGE_URI")"
+          test "$revision" = "$DEPLOY_SHA" || {
+            echo "::error::Immutable image revision label does not match DEPLOY_SHA"
+            exit 1
+          }
+
+      - name: Prepare the non-secret release bundle
+        if: env.REUSE_EXISTING_RELEASE == 'false'
+        run: |
+          set -euo pipefail
+          rm -rf release-bundle
+          mkdir -p release-bundle/scripts
+          cp docker-compose.server.yml release-bundle/
+          cp scripts/deploy-acr-background.sh release-bundle/scripts/
+          find release-bundle -type f -print | sort
+
+      - name: Copy deployment assets to the SHA release directory
+        if: env.REUSE_EXISTING_RELEASE == 'false'
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          source: release-bundle/*
+          target: ${{ secrets.DEPLOY_PATH }}/releases/${{ env.DEPLOY_SHA }}
+          strip_components: 1
+          overwrite: true
+
+      - name: Queue detached server-side deployment
+        env:
+          DEPLOY_DIR: ${{ secrets.DEPLOY_PATH }}
+          GIT_SHA: ${{ env.DEPLOY_SHA }}
+          DEPLOY_RUN_ID: ${{ github.run_id }}
+          DEPLOY_RUN_ATTEMPT: ${{ github.run_attempt }}
+          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/trading-agents-adapted:${{ env.DEPLOY_SHA }}
+          DEPLOY_TEST_FORCE_FAILURE_AFTER_UP: ${{ env.DEPLOY_TEST_FORCE_FAILURE_AFTER_UP }}
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          timeout: 30s
+          command_timeout: 2m
+          envs: DEPLOY_DIR,GIT_SHA,DEPLOY_RUN_ID,DEPLOY_RUN_ATTEMPT,IMAGE_URI,DEPLOY_TEST_FORCE_FAILURE_AFTER_UP
+          script_path: scripts/launch-acr-deploy.sh
+
+      - name: Wait for the exact server deployment result
+        env:
+          DEPLOY_DIR: ${{ secrets.DEPLOY_PATH }}
+          GIT_SHA: ${{ env.DEPLOY_SHA }}
+          DEPLOY_RUN_ID: ${{ github.run_id }}
+          DEPLOY_RUN_ATTEMPT: ${{ github.run_attempt }}
+          IMAGE_URI: ${{ vars.ACR_REGISTRY }}/${{ vars.ACR_NAMESPACE }}/trading-agents-adapted:${{ env.DEPLOY_SHA }}
+          DEPLOY_RESULT_TIMEOUT_SECONDS: "2700"
+          DEPLOY_RESULT_POLL_INTERVAL_SECONDS: "5"
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          timeout: 30s
+          command_timeout: 46m
+          envs: DEPLOY_DIR,GIT_SHA,DEPLOY_RUN_ID,DEPLOY_RUN_ATTEMPT,IMAGE_URI,DEPLOY_RESULT_TIMEOUT_SECONDS,DEPLOY_RESULT_POLL_INTERVAL_SECONDS
+          script_path: scripts/wait-acr-deploy-result.sh
