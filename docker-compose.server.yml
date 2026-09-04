@@ -1,0 +1,103 @@
+name: trading-agents-adapted
+
+services:
+  # Existing interactive CLI toolbox; operators launch analyses with compose exec.
+  tradingagents:
+    image: ${TRADINGAGENTS_IMAGE:?TRADINGAGENTS_IMAGE is required}
+    pull_policy: never
+    env_file:
+      - ${TRADINGAGENTS_ENV_FILE:?TRADINGAGENTS_ENV_FILE is required}
+      - ${AGENT_RUNTIME_ENV_FILE:?AGENT_RUNTIME_ENV_FILE is required}
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    labels:
+      io.beixi.deploy.sha: ${GIT_SHA:?GIT_SHA is required}
+    volumes:
+      - tradingagents_data:/home/appuser/.tradingagents
+      - tradingagents_reports:/home/appuser/app/reports
+    entrypoint: ["sleep"]
+    command: ["infinity"]
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 10s
+    healthcheck:
+      test: ["CMD", "python", "-c", "import tradingagents; import cli.main"]
+      interval: 15s
+      timeout: 10s
+      retries: 4
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Machine-only event planning API. It owns no broker account and publishes no
+  # host port; TestingStrategies reaches the stable alias on the external bridge.
+  event-plan-api:
+    image: ${TRADINGAGENTS_IMAGE:?TRADINGAGENTS_IMAGE is required}
+    pull_policy: never
+    env_file:
+      - ${TRADINGAGENTS_ENV_FILE:?TRADINGAGENTS_ENV_FILE is required}
+      - ${TRADINGAGENTS_API_ENV_FILE:?TRADINGAGENTS_API_ENV_FILE is required}
+      - ${AGENT_RUNTIME_ENV_FILE:?AGENT_RUNTIME_ENV_FILE is required}
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      TRADINGAGENTS_API_HOST: 0.0.0.0
+      TRADINGAGENTS_API_PORT: "8787"
+      TRADINGAGENTS_API_TIMEOUT_SECONDS: "900"
+      TRADINGAGENTS_PORTFOLIO_API_TIMEOUT_SECONDS: "19800"
+      TRADINGAGENTS_API_STATE_PATH: /home/appuser/.tradingagents/event-plan-api/requests.sqlite3
+    labels:
+      io.beixi.deploy.sha: ${GIT_SHA:?GIT_SHA is required}
+    volumes:
+      - tradingagents_api_data:/home/appuser/.tradingagents
+    entrypoint: ["tradingagents-api"]
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    expose:
+      - "8787"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import json,urllib.request;
+          body=json.load(urllib.request.urlopen('http://127.0.0.1:8787/health/ready',timeout=5));
+          assert body=={'status':'ready'}
+      interval: 15s
+      timeout: 10s
+      retries: 4
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      event_plan_internal:
+        aliases:
+          - trading-agents-event-plan-api
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  tradingagents_data:
+    name: trading-agents-adapted-data
+  tradingagents_reports:
+    name: trading-agents-adapted-reports
+  tradingagents_api_data:
+    name: trading-agents-adapted-api-data
+
+networks:
+  event_plan_internal:
+    name: ${TRADINGAGENTS_SHARED_NETWORK:-beixi-trading-internal}
+    external: true
